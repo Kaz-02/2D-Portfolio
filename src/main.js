@@ -2,6 +2,7 @@ import { dialogueData, scaleFactor } from "./constants";
 import { k } from "./kaboomCtx";
 import { displayDialogue, setCamScale } from "./utils";
 
+// Dertermine player style and animation
 k.loadSprite("spritesheet", "./spritesheet.png", {
   sliceX: 39,
   sliceY: 31,
@@ -15,16 +16,21 @@ k.loadSprite("spritesheet", "./spritesheet.png", {
   },
 });
 
+// Load map sprite that I created
 k.loadSprite("map", "./map.png");
 
+// Set background color
 k.setBackground(k.Color.fromHex("#311047"));
 
 k.scene("main", async () => {
+  // Load map data from JSON file
   const mapData = await (await fetch("./map.json")).json();
   const layers = mapData.layers;
 
+  // Add map sprite to the scene
   const map = k.add([k.sprite("map"), k.pos(0), k.scale(scaleFactor)]);
 
+  // Create player sprite with properties and animation
   const player = k.make([
     k.sprite("spritesheet", { anim: "idle-down" }),
     k.area({
@@ -42,7 +48,9 @@ k.scene("main", async () => {
     "player",
   ]);
 
+  // Checking objects inside layers
   for (const layer of layers) {
+    // Process objects named boundaries
     if (layer.name === "boundaries") {
       for (const boundary of layer.objects) {
         map.add([
@@ -54,6 +62,7 @@ k.scene("main", async () => {
           boundary.name,
         ]);
 
+        // Dispkay dialogue when player collides with boundary with name
         if (boundary.name) {
           player.onCollide(boundary.name, () => {
             player.isInDialogue = true;
@@ -68,6 +77,7 @@ k.scene("main", async () => {
       continue;
     }
 
+    // Set spawn point
     if (layer.name === "spawnpoints") {
       for (const entity of layer.objects) {
         if (entity.name === "player") {
@@ -82,16 +92,19 @@ k.scene("main", async () => {
     }
   }
 
+  // Set camera scale and adjust on resize
   setCamScale(k);
 
   k.onResize(() => {
     setCamScale(k);
   });
 
+  // update camera position to follow player
   k.onUpdate(() => {
     k.camPos(player.worldPos().x, player.worldPos().y - 100);
   });
 
+  // Handle mouse clickes for player movement
   k.onMouseDown((mouseBtn) => {
     if (mouseBtn !== "left" || player.isInDialogue) return;
 
@@ -103,6 +116,7 @@ k.scene("main", async () => {
     const lowerBound = 50;
     const upperBound = 125;
 
+    // Change animation based on mouse angle
     if (
       mouseAngle > lowerBound &&
       mouseAngle < upperBound &&
@@ -138,6 +152,7 @@ k.scene("main", async () => {
     }
   });
 
+  // stop animation when player stops moving
   function stopAnims() {
     if (player.direction === "down") {
       player.play("idle-down");
@@ -156,6 +171,8 @@ k.scene("main", async () => {
   k.onKeyRelease(() => {
     stopAnims();
   });
+
+  // Handle keyboard input for player movement
   k.onKeyDown((key) => {
     const keyMap = [
       k.isKeyDown("right"),
@@ -174,6 +191,8 @@ k.scene("main", async () => {
     if (nbOfKeyPressed > 1) return;
 
     if (player.isInDialogue) return;
+
+    // Move player based on key pressed ad play appropriate animation
     if (keyMap[0]) {
       player.flipX = false;
       if (player.curAnim() !== "walk-side") player.play("walk-side");
